@@ -389,3 +389,38 @@ button.taskListTask {
 .curieSelectorInput:focus {
   border: 1px solid black !important;
 }
+
+/* Contingency table in edge explorer */
+#ctngcyTable {
+  border: 0 solid;
+  text-align: center;
+  width: 100%;
+  border-color: #333333;
+  color: #333333;
+}
+.ctngcyCell, .ctngcyColumnFinish, .ctngcyRowFinish, .ctngcyTableFinish,
+.ctngcyRowHeader, .ctngcyColumnHeader {
+  padding: 6px;
+  border: 1px solid black;
+  text-align: center;
+  color: #000000;
+}
+.ctngcyCellInner {
+  width: 100%;
+  table-layout: fixed;
+}
+.ctngcyColumnHeader {
+  border-width: 0 1px 1px 1px;
+}
+.ctngcyRowHeader {
+  border-width: 1px 1px 1px 0;
+}
+.ctngcyColumnFinish {
+  border-width: 1px 0 1px 1px;
+}
+.ctngcyRowFinish {
+  border-width: 1px 1px 0 1px;
+}
+.ctngcyTableFinish {
+  border-width: 1px 0 0 1px;
+}

@@ -1,6 +1,7 @@
 import React from 'react';
 
-import { Row, Col, Panel } from 'react-bootstrap';
+import { Row, Col, Panel, Collapse } from 'react-bootstrap';
+
 import FaDownload from 'react-icons/lib/fa/download';
 
 import AppConfig from '../../AppConfig';
@@ -26,6 +27,10 @@ class AnswerExplorerInfo extends React.Component {
       subgraph: { nodes: [], edges: [] },
       disbleGraphClick: false,
       downloadingPubs: false,
+      componentOpened : {
+        'cTable' : true,
+      },
+      ctngcyTableRoundTo : 2,
     };
 
     this.onGraphClick = this.onGraphClick.bind(this);
@@ -200,6 +205,194 @@ class AnswerExplorerInfo extends React.Component {
     );
   }
 
+  renderContingencyTableCell(cell) {
+    //i assume here that null values are to be rendered as 0
+    var column = cell.column_percentage,
+        row = cell.row_percentage,
+        total = cell.total_percentage,
+        freq = cell.frequency,
+        roundTo = this.state.ctngcyTableRoundTo,
+        f = (n) => { //formatting
+          n = n && n != 0 ? parseFloat(n*100).toFixed(roundTo) : 0;
+          var d = (Math.log10((n ^ (n >> 31)) - (n >> 31)) | 0) + 1;
+          if (!n.toString().includes('.')) n = n.toString()+'.';
+          return n.toString().padEnd(roundTo+d+1, '0');
+        };
+    /*
+    frequency             row_percentage
+    column_percentage     total_percentage
+    */
+    var c1 = [], c2 = [];
+    c1.push(<td>{freq}</td>);
+    if (row != -1) { c1.push(<td>{f(row) + "%"}</td>); }
+    if (column != -1) { c2.push(<td>{f(column) + "%"}</td>); }
+    if (total != -1) { c2.push(<td>{f(total) + "%"}</td>); }
+
+    return (
+      <div>
+        <table className="ctngcyCellInner">
+          <tr>
+            {c1}
+          </tr>
+          <tr>
+            {c2}
+          </tr>
+        </table>
+      </div>
+    );
+  }
+  addContingencyCell(cell1, cell2) {
+    if (cell1 && cell2) {
+      var newCell  = {
+        frequency: cell1.frequency+cell2.frequency,
+        row_percentage: cell1.row_percentage+cell2.row_percentage,
+        column_percentage: cell1.column_percentage+cell2.column_percentage,
+        total_percentage: cell1.total_percentage+cell2.total_percentage,
+      };
+      return newCell;
+    }
+  }
+  blankContingencyCell() {
+    var newCell = {
+      frequency: 0,
+      row_percentage: 0,
+      column_percentage: 0,
+      total_percentage: 0,
+    };
+    return newCell;
+  }
+
+  renderContingencyTable() {
+    var matrixRender = null;
+    if (this.state.selectedEdge && this.state.selectedEdge.edge_attributes) {
+      matrixRender = [];
+      var attr = this.state.selectedEdge.edge_attributes;
+      var matrix = attr.feature_matrix;
+      var columnHeaders = attr.feature_a;
+      var rowHeaders = attr.feature_b;
+
+      var headerRow = [];
+      headerRow.push(<th>{""}</th>); //blank space in top left corner
+      for (var i = 0; i < columnHeaders.feature_qualifiers.length; i++) {
+        var q = columnHeaders.feature_qualifiers[i];
+        var operator = q.operator.replace(">=","≥").replace("<=","≤");
+        var headerStr = columnHeaders.feature_name + " " + operator + " " + q.value;
+        headerRow.push(<th className="ctngcyColumnHeader">{headerStr}</th>);
+      }
+      matrixRender.push(<tr>{headerRow}</tr>);
+
+      var columnTotals = [];
+      var rowTotals = [];
+      var tableTotal = this.blankContingencyCell();
+
+      var postHeaderRows = [];
+      for (var k = 0; k < matrix.length; k++) {
+        //traversing rows
+        postHeaderRows.push([]);
+
+        var q = rowHeaders.feature_qualifiers[k];
+        var operator = q.operator.replace(">=","≥").replace("<=","≤");
+        var headerStr = rowHeaders.feature_name + " " + operator + " " + q.value; 
+        postHeaderRows[k].push(<th className="ctngcyRowHeader">{headerStr}</th>);
+
+        rowTotals.push(this.blankContingencyCell());
+        for (var l = 0; l < matrix[k].length; l++) {
+          //traversing columns in row k
+          var cell = matrix[k][l];
+          rowTotals[k] = this.addContingencyCell(rowTotals[k], cell);
+          
+          postHeaderRows[k].push(<td className="ctngcyCell">{this.renderContingencyTableCell(matrix[k][l])}</td>);
+
+        }
+        //row totals i.e. column on the rightmost strip of the table
+        //row totals ignore column and row totals according to graphic
+        rowTotals[k].column_percentage = -1;
+        rowTotals[k].row_percentage = -1;
+        if (k == 0) {
+          headerRow.push(<th></th>);
+        }
+        postHeaderRows[k].push(<td className="ctngcyColumnFinish">{this.renderContingencyTableCell(rowTotals[k])}</td>);
+        
+        //pushing to renderable component
+        matrixRender.push(<tr>{postHeaderRows[k]}</tr>);
+      }
+      for (var l = 0; l < matrix[0].length; l++) {
+        columnTotals.push(this.blankContingencyCell());
+        for (var k = 0; k < matrix.length; k++) {
+          //columnTotals[l] += matrix[k][l].frequency;
+          columnTotals[l] = this.addContingencyCell(columnTotals[l], matrix[k][l]);
+        }
+      }
+      //i.e. row on the lowest rung
+      var columnTotalsRender = [];
+      columnTotalsRender.push(<td></td>);
+      for (var i = 0; i < columnTotals.length; i++) {
+        tableTotal = this.addContingencyCell(tableTotal, columnTotals[i]);
+        //column totals ignore row and total %s
+        columnTotals[i].row_percentage = -1;
+        columnTotals[i].total_percentage = -1;
+        columnTotalsRender.push(<td className="ctngcyRowFinish">{this.renderContingencyTableCell(columnTotals[i])}</td>);
+      }
+      //total only include column and freq. only added from columns
+      //row and column totals should be equivalent.
+      tableTotal.row_percentage = -1;
+      tableTotal.total_percentage = -1;
+      columnTotalsRender.push(<td className="ctngcyTableFinish">{this.renderContingencyTableCell(tableTotal)}</td>);
+      matrixRender.push(<tr>{columnTotalsRender}</tr>);
+      
+      /*react libs arent designed for 2d matrices.
+      return (
+        <div>
+          <ReactTable data={data},
+          columns={columns}
+          />
+        </div>
+      );*/
+    }
+
+    if (matrixRender && matrixRender.length != 0) {
+      return (
+        <div>
+          <table id="ctngcyTable">
+            <tbody>
+              {matrixRender}
+            </tbody>
+          </table>
+        </div>
+      )
+    } else {
+      return (
+        <div>
+          <p>No table to display.</p>
+        </div>
+      )
+    }
+  }
+
+  getMatrix() {
+    var buttonStyle = { display : "inline", float : "right", };
+    return (
+      <Panel>
+        <Panel.Heading 
+        style={{cursor:"pointer"}}
+        onClick={()=> {
+          var not = this.state.componentOpened;
+          not["cTable"] = !not["cTable"];
+          this.setState({ componentOpened : not });
+        }}>
+          <Panel.Title componentClass="h3">
+            Contingency Table
+          </Panel.Title>
+        </Panel.Heading>
+        <Collapse in={this.state.componentOpened["cTable"]}>
+          <Panel.Body style={{overflow:"auto"}}>
+            {this.renderContingencyTable()}
+          </Panel.Body>
+        </Collapse>
+      </Panel>
+    )
+  }
+
   downloadPublicationsInfo(publications) {
     const defaultInfo = {
       id: '',
@@ -300,6 +493,11 @@ class AnswerExplorerInfo extends React.Component {
             </Col>
             <Col md={4}>
               {this.getNodeInfoFrag(this.state.subgraph.nodes[1])}
+            </Col>
+          </Row>
+          <Row>
+            <Col md={12}>
+              {this.getMatrix()}
             </Col>
           </Row>
           <Row>
