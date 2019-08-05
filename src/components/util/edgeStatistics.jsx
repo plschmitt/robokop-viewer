@@ -39,19 +39,19 @@ class edgeStats {
 		      interpretation = phiInterpretations[i] + " Association";
 		    }
 		  }
-		return phi ? "Phi Coefficient: " + this.formatFloat(phi) + " - " + interpretation : "Phi Coefficient Not Applicable";
+		return phi ? "Phi Coefficient: " + this.formatFloat(phi) + " - " + interpretation : null;
 	}
   getChiSquare() {
   	return this.attr ? this.attr.chi_squared : null;
   }
   getChiSquareString() {
-		return this.getChiSquare() ? "Chi Square Statistic: " + this.formatFloat(this.getChiSquare()) : "Chi Square Undefined";
+		return this.getChiSquare() ? "Chi Square Statistic: " + this.formatFloat(this.getChiSquare()) : null;
   }
   getPVal() {
   	return this.attr ? this.attr.p_value : null;
   }
   getPValString() {
-  	return this.getPVal() ? "P-Value: " + this.formatFloat(this.getPVal()) : "P-Value Not Defined";
+  	return this.getPVal() ? "P-Value: " + this.formatFloat(this.getPVal()) : null;
   }
   getGammaCoefficient() {
     var nc = 0, //concordant pairs
@@ -87,6 +87,10 @@ class edgeStats {
     }
     return (nc - nd)/(nc + nd);
 		}
+	}
+	getGammaCoefficientString() {
+		var g = this.getGammaCoefficient();
+		return g ? "Gamma Coefficient: " + this.formatFloat(g) : null;
 	}
   formatFloat(n) {
     if (n > 0.0001 || n < -0.0001) {

@@ -422,58 +422,26 @@ class AnswerExplorerInfo extends React.Component {
 
   getTableStatistics() {
     if (this.state.selectedEdge && this.state.selectedEdge.edge_attributes) {
-
-      var stats = new edgeStats.edgeStats(this.state.selectedEdge);
       //underlying statistics tab for the contingency table
-    
-      var attr = this.state.selectedEdge.edge_attributes,
-          phi = stats.getPhiCoefficient(),
-          phiVals = [-1,-0.7,-0.3,0.3,0.7],
-          phiInterpretations = ["Strong Negative", "Weak Negative", "Little or No", "Weak Positive", "Strong Positive"];
-          var interpretation = "";
-          for (var i = 0; i < phiVals.length; i++) {
-            if (phi >= phiVals[i] && (i+1 >= phiVals.length || phi < phiVals[i+1])) {
-              interpretation = phiInterpretations[i] + " Association";
-            }
-          }
-      var phiString = phi ? "Phi Coefficient: " + this.formatTable(phi,false) + " - " + interpretation : "Phi Coefficient Not Applicable",
-          chiString = attr.chi_squared ? "Chi Square Statistic: " + this.formatTable(attr.chi_squared,false) : "Chi Square Undefined",
-          pString = attr.p_value ? "P-Value: " + this.formatTable(attr.p_value,false) : "P-Value Not Defined";
+      var stats = new edgeStats.edgeStats(this.state.selectedEdge),
+          gamma = stats.getGammaCoefficientString(),
+          pval = stats.getPValString(),
+          chi = stats.getChiSquareString(),
+          phi = stats.getPhiCoefficientString();
+      
       return (
         <div>
           <h3>Table Statistics</h3>
-          <p>{stats.getPhiCoefficientString()}</p>
-          <p>{stats.getChiSquareString()}</p>
-          <p>{stats.getPValString()}</p>
+          {phi ? <p>{phi}</p> : null}
+          {chi ? <p>{chi}</p> : null}
+          {pval ? <p>{pval}</p> : null}
+          {gamma ? <p>{gamma}</p> : null}
         </div>
       )
     } else {
       return (null)
     }
   }
-
-
-
-  /*getPhiCoefficient() {
-      var matrix = this.state.selectedEdge.edge_attributes.feature_matrix;
-      //only relevant in a binary association
-      if (!matrix || (matrix.length != 2 || matrix[0].length != 2 || matrix[1].length != 2)) {
-        return NaN;
-      } else {
-        var a = matrix[0][0] ? matrix[0][0].frequency : 0,
-            b = matrix[0][1] ? matrix[0][1].frequency : 0,
-            c = matrix[1][0] ? matrix[1][0].frequency : 0,
-            d = matrix[1][1] ? matrix[1][1].frequency : 0,
-            g = a+c, h = b+d, e = a+b, f = c+d;
-        //0s in the matrix wont do
-        if (a*b*c*d == 0) {
-          return NaN;
-        }
-        var denom = Math.sqrt(e*f*g*h) != 0 ? Math.sqrt(e*f*g*h) : 1;
-        var phi = (a*b - c*d)/denom;
-        return phi;
-    }
-  }*/
 
   downloadPublicationsInfo(publications) {
     const defaultInfo = {
