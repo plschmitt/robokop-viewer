@@ -14,6 +14,8 @@ import curieUrls from '../util/curieUrls';
 
 const shortid = require('shortid');
 
+import edgeStats from './../util/edgeStatistics';
+
 class AnswerExplorerInfo extends React.Component {
   constructor(props) {
     super(props);
@@ -211,22 +213,16 @@ class AnswerExplorerInfo extends React.Component {
         row = cell.row_percentage,
         total = cell.total_percentage,
         freq = cell.frequency,
-        roundTo = this.state.ctngcyTableRoundTo,
-        f = (n) => { //formatting
-          n = n && n != 0 ? parseFloat(n*100).toFixed(roundTo) : 0;
-          var d = (Math.log10((n ^ (n >> 31)) - (n >> 31)) | 0) + 1;
-          if (!n.toString().includes('.')) n = n.toString()+'.';
-          return n.toString().padEnd(roundTo+d+1, '0');
-        };
+        roundTo = this.state.ctngcyTableRoundTo;
     /*
     frequency             row_percentage
     column_percentage     total_percentage
     */
     var c1 = [], c2 = [];
     c1.push(<td>{freq}</td>);
-    if (row != -1) { c1.push(<td>{f(row) + "%"}</td>); }
-    if (column != -1) { c2.push(<td>{f(column) + "%"}</td>); }
-    if (total != -1) { c2.push(<td>{f(total) + "%"}</td>); }
+    if (row != -1) { c1.push(<td>{this.formatTable(row,true) + "%"}</td>); }
+    if (column != -1) { c2.push(<td>{this.formatTable(column,true) + "%"}</td>); }
+    if (total != -1) { c2.push(<td>{this.formatTable(total,true) + "%"}</td>); }
 
     return (
       <div>
@@ -312,7 +308,8 @@ class AnswerExplorerInfo extends React.Component {
           headerRow.push(<th></th>);
         }
         postHeaderRows[k].push(<td className="ctngcyColumnFinish">{this.renderContingencyTableCell(rowTotals[k])}</td>);
-        
+        tableTotal = this.addContingencyCell(tableTotal, rowTotals[k]);
+
         //pushing to renderable component
         matrixRender.push(<tr>{postHeaderRows[k]}</tr>);
       }
@@ -327,7 +324,6 @@ class AnswerExplorerInfo extends React.Component {
       var columnTotalsRender = [];
       columnTotalsRender.push(<td></td>);
       for (var i = 0; i < columnTotals.length; i++) {
-        tableTotal = this.addContingencyCell(tableTotal, columnTotals[i]);
         //column totals ignore row and total %s
         columnTotals[i].row_percentage = -1;
         columnTotals[i].total_percentage = -1;
@@ -335,8 +331,10 @@ class AnswerExplorerInfo extends React.Component {
       }
       //total only include column and freq. only added from columns
       //row and column totals should be equivalent.
+      //going to just leave out percentages in bottommost left cell since they should be 100 but almost never are
       tableTotal.row_percentage = -1;
       tableTotal.total_percentage = -1;
+      tableTotal.column_percentage = -1;
       columnTotalsRender.push(<td className="ctngcyTableFinish">{this.renderContingencyTableCell(tableTotal)}</td>);
       matrixRender.push(<tr>{columnTotalsRender}</tr>);
       
@@ -370,6 +368,7 @@ class AnswerExplorerInfo extends React.Component {
   }
 
   getMatrix() {
+
     var buttonStyle = { display : "inline", float : "right", };
     return (
       <Panel>
@@ -387,11 +386,94 @@ class AnswerExplorerInfo extends React.Component {
         <Collapse in={this.state.componentOpened["cTable"]}>
           <Panel.Body style={{overflow:"auto"}}>
             {this.renderContingencyTable()}
+            {this.getTableStatistics()}
           </Panel.Body>
         </Collapse>
       </Panel>
     )
   }
+  //formatting floats. toPercent = multiply by 100 or no.
+  formatTable(n, toPercent) {
+    var roundTo = this.state.ctngcyTableRoundTo;
+    if (n > 0.0001 || n < -0.0001) {
+      if (toPercent) {
+        n = n && n != 0 ? parseFloat(n*100).toFixed(roundTo) : 0;
+      } else {
+        n = n && n != 0 ? parseFloat(n).toFixed(roundTo) : 0;
+      }
+      var d = (Math.log10((n ^ (n >> 31)) - (n >> 31)) | 0) + 1;
+      if (!n.toString().includes('.')) n = n.toString()+'.';
+      return n.toString().padEnd(roundTo+d+1, '0');
+    } else if (n) { //scientific notation
+      if (toPercent) {
+        return (n*100).toExponential(roundTo).toString();
+      } else {
+        return n.toExponential(roundTo).toString();
+      }
+    } else {
+      n = "0";
+      if (roundTo > 0) {
+        n = "0.";
+        n.padEnd(roundTo+2, "0");
+      }
+      return n;
+    }
+  }
+
+  getTableStatistics() {
+    if (this.state.selectedEdge && this.state.selectedEdge.edge_attributes) {
+
+      var stats = new edgeStats.edgeStats(this.state.selectedEdge);
+      //underlying statistics tab for the contingency table
+    
+      var attr = this.state.selectedEdge.edge_attributes,
+          phi = stats.getPhiCoefficient(),
+          phiVals = [-1,-0.7,-0.3,0.3,0.7],
+          phiInterpretations = ["Strong Negative", "Weak Negative", "Little or No", "Weak Positive", "Strong Positive"];
+          var interpretation = "";
+          for (var i = 0; i < phiVals.length; i++) {
+            if (phi >= phiVals[i] && (i+1 >= phiVals.length || phi < phiVals[i+1])) {
+              interpretation = phiInterpretations[i] + " Association";
+            }
+          }
+      var phiString = phi ? "Phi Coefficient: " + this.formatTable(phi,false) + " - " + interpretation : "Phi Coefficient Not Applicable",
+          chiString = attr.chi_squared ? "Chi Square Statistic: " + this.formatTable(attr.chi_squared,false) : "Chi Square Undefined",
+          pString = attr.p_value ? "P-Value: " + this.formatTable(attr.p_value,false) : "P-Value Not Defined";
+      return (
+        <div>
+          <h3>Table Statistics</h3>
+          <p>{stats.getPhiCoefficientString()}</p>
+          <p>{stats.getChiSquareString()}</p>
+          <p>{stats.getPValString()}</p>
+        </div>
+      )
+    } else {
+      return (null)
+    }
+  }
+
+
+
+  /*getPhiCoefficient() {
+      var matrix = this.state.selectedEdge.edge_attributes.feature_matrix;
+      //only relevant in a binary association
+      if (!matrix || (matrix.length != 2 || matrix[0].length != 2 || matrix[1].length != 2)) {
+        return NaN;
+      } else {
+        var a = matrix[0][0] ? matrix[0][0].frequency : 0,
+            b = matrix[0][1] ? matrix[0][1].frequency : 0,
+            c = matrix[1][0] ? matrix[1][0].frequency : 0,
+            d = matrix[1][1] ? matrix[1][1].frequency : 0,
+            g = a+c, h = b+d, e = a+b, f = c+d;
+        //0s in the matrix wont do
+        if (a*b*c*d == 0) {
+          return NaN;
+        }
+        var denom = Math.sqrt(e*f*g*h) != 0 ? Math.sqrt(e*f*g*h) : 1;
+        var phi = (a*b - c*d)/denom;
+        return phi;
+    }
+  }*/
 
   downloadPublicationsInfo(publications) {
     const defaultInfo = {
