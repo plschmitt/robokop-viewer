@@ -9,6 +9,7 @@ class edgeStats {
 		this.matrix = this.attr ? this.attr.feature_matrix : null;
 		this.roundTo = 3;
 	}
+
 	getPhiCoefficient() {
     var matrix = this.matrix;
     //only relevant in a binary association
@@ -29,30 +30,39 @@ class edgeStats {
       return phi;
     }
   }
+
+  interpretVal(n, values, interpretations, suffix) {
+    var result = "";
+    for (var i = 0; i < values.length; i++) {
+      if (n >= values[i] && (i+1 >= values.length || n < values[i+1])) {
+        result = interpretations[i];
+      }
+    }
+    return result + suffix;
+  }
+
   getPhiCoefficientString() {
 		var phi = this.getPhiCoefficient(),
-		  	phiVals = [-1,-0.7,-0.3,0.3,0.7],
-		  	phiInterpretations = ["Strong Negative", "Weak Negative", "Little or No", "Weak Positive", "Strong Positive"],
-		  	interpretation = "";
-		  for (var i = 0; i < phiVals.length; i++) {
-		    if (phi >= phiVals[i] && (i+1 >= phiVals.length || phi < phiVals[i+1])) {
-		      interpretation = phiInterpretations[i] + " Association";
-		    }
-		  }
-		return phi ? "Phi Coefficient: " + this.formatFloat(phi) + " - " + interpretation : null;
+        interpretation = this.interpretVal(phi, [-1,-0.7,-0.3,0.3,0.7], ["Strong Negative", "Weak Negative", "Little or No", "Weak Positive", "Strong Positive"], " Association");
+		return phi ? "Phi Coefficient: " + this.formatFloat(phi) + " (" + interpretation + ")" : null;
 	}
+
   getChiSquare() {
   	return this.attr ? this.attr.chi_squared : null;
   }
+
   getChiSquareString() {
 		return this.getChiSquare() ? "Chi Square Statistic: " + this.formatFloat(this.getChiSquare()) : null;
   }
+
   getPVal() {
   	return this.attr ? this.attr.p_value : null;
   }
+
   getPValString() {
   	return this.getPVal() ? "P-Value: " + this.formatFloat(this.getPVal()) : null;
   }
+
   getGammaCoefficient() {
     var nc = 0, //concordant pairs
         nd = 0, //reversed pairs
@@ -88,10 +98,13 @@ class edgeStats {
     return (nc - nd)/(nc + nd);
 		}
 	}
+
 	getGammaCoefficientString() {
-		var g = this.getGammaCoefficient();
-		return g ? "Gamma Coefficient: " + this.formatFloat(g) : null;
+		var g = this.getGammaCoefficient(),
+        interpretation = this.interpretVal(g, [-1,-0.7,-0.3,0.3,0.7], ["Strong Inversion", "Weak Inversion", "No Association", "Weak Agreement", "Strong Agreement"],"");
+		return g ? "Gamma Coefficient: " + this.formatFloat(g) + " (" + interpretation + ")" : null;
 	}
+  
   formatFloat(n) {
     if (n > 0.0001 || n < -0.0001) {
       n = n && n != 0 ? parseFloat(n).toFixed(this.roundTo) : 0;
@@ -111,6 +124,6 @@ class edgeStats {
     }
   }
 }
-//import edgeStats from './../util/edgeStatistics';
+
 // for node.js
 module.exports.edgeStats = edgeStats;
