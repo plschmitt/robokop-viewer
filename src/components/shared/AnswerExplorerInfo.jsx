@@ -208,7 +208,7 @@ class AnswerExplorerInfo extends React.Component {
   }
 
   renderContingencyTableCell(cell) {
-    //i assume here that null values are to be rendered as 0
+    //I assume here that null values are to be rendered as 0
     var column = cell.column_percentage,
         row = cell.row_percentage,
         total = cell.total_percentage,
@@ -220,9 +220,9 @@ class AnswerExplorerInfo extends React.Component {
     */
     var c1 = [], c2 = [];
     c1.push(<td>{freq}</td>);
-    if (row != -1) { c1.push(<td>{this.formatTable(row,true) + "%"}</td>); }
-    if (column != -1) { c2.push(<td>{this.formatTable(column,true) + "%"}</td>); }
-    if (total != -1) { c2.push(<td>{this.formatTable(total,true) + "%"}</td>); }
+    if (row != -1) { c1.push(<td>{this.formatTable(row*100) + "%"}</td>); }
+    if (column != -1) { c2.push(<td>{this.formatTable(column*100) + "%"}</td>); }
+    if (total != -1) { c2.push(<td>{this.formatTable(total*100) + "%"}</td>); }
 
     return (
       <div>
@@ -268,7 +268,8 @@ class AnswerExplorerInfo extends React.Component {
       var rowHeaders = attr.feature_b;
 
       var headerRow = [];
-      headerRow.push(<th>{""}</th>); //blank space in top left corner
+      //blank space in top left
+      headerRow.push(<th>{""}</th>);
       for (var i = 0; i < columnHeaders.feature_qualifiers.length; i++) {
         var q = columnHeaders.feature_qualifiers[i];
         var operator = q.operator.replace(">=","≥").replace("<=","≤");
@@ -300,8 +301,7 @@ class AnswerExplorerInfo extends React.Component {
           postHeaderRows[k].push(<td className="ctngcyCell">{this.renderContingencyTableCell(matrix[k][l])}</td>);
 
         }
-        //row totals i.e. column on the rightmost strip of the table
-        //row totals ignore column and row totals according to graphic
+        //row totals i.e. rightmost column
         rowTotals[k].column_percentage = -1;
         rowTotals[k].row_percentage = -1;
         if (k == 0) {
@@ -316,36 +316,23 @@ class AnswerExplorerInfo extends React.Component {
       for (var l = 0; l < matrix[0].length; l++) {
         columnTotals.push(this.blankContingencyCell());
         for (var k = 0; k < matrix.length; k++) {
-          //columnTotals[l] += matrix[k][l].frequency;
           columnTotals[l] = this.addContingencyCell(columnTotals[l], matrix[k][l]);
         }
       }
-      //i.e. row on the lowest rung
+      //column totals i.e. lowest row
       var columnTotalsRender = [];
       columnTotalsRender.push(<td></td>);
       for (var i = 0; i < columnTotals.length; i++) {
-        //column totals ignore row and total %s
         columnTotals[i].row_percentage = -1;
         columnTotals[i].total_percentage = -1;
         columnTotalsRender.push(<td className="ctngcyRowFinish">{this.renderContingencyTableCell(columnTotals[i])}</td>);
       }
-      //total only include column and freq. only added from columns
-      //row and column totals should be equivalent.
-      //going to just leave out percentages in bottommost left cell since they should be 100 but almost never are
+      //Leaving out percentages in bottommost left cell since they should be 100 but almost never are
       tableTotal.row_percentage = -1;
       tableTotal.total_percentage = -1;
       tableTotal.column_percentage = -1;
       columnTotalsRender.push(<td className="ctngcyTableFinish">{this.renderContingencyTableCell(tableTotal)}</td>);
       matrixRender.push(<tr>{columnTotalsRender}</tr>);
-      
-      /*react libs arent designed for 2d matrices.
-      return (
-        <div>
-          <ReactTable data={data},
-          columns={columns}
-          />
-        </div>
-      );*/
     }
 
     if (matrixRender && matrixRender.length != 0) {
@@ -366,9 +353,8 @@ class AnswerExplorerInfo extends React.Component {
       )
     }
   }
-
+  //Statistics panel w/ table
   getMatrix() {
-
     var buttonStyle = { display : "inline", float : "right", };
     return (
       <Panel>
@@ -392,24 +378,17 @@ class AnswerExplorerInfo extends React.Component {
       </Panel>
     )
   }
-  //formatting floats. toPercent = multiply by 100 or no.
-  formatTable(n, toPercent) {
+  //Formatting floats
+  formatTable(n) {
     var roundTo = this.state.ctngcyTableRoundTo;
     if (n > 0.0001 || n < -0.0001) {
-      if (toPercent) {
-        n = n && n != 0 ? parseFloat(n*100).toFixed(roundTo) : 0;
-      } else {
-        n = n && n != 0 ? parseFloat(n).toFixed(roundTo) : 0;
-      }
-      var d = (Math.log10((n ^ (n >> 31)) - (n >> 31)) | 0) + 1;
+      var n = n && n != 0 ? parseFloat(n*100).toFixed(roundTo) : 0,
+          d = (Math.log10((n ^ (n >> 31)) - (n >> 31)) | 0) + 1;
       if (!n.toString().includes('.')) n = n.toString()+'.';
       return n.toString().padEnd(roundTo+d+1, '0');
-    } else if (n) { //scientific notation
-      if (toPercent) {
-        return (n*100).toExponential(roundTo).toString();
-      } else {
-        return n.toExponential(roundTo).toString();
-      }
+    } else if (n) {
+      //Scientific notation
+      return n.toExponential(roundTo).toString();
     } else {
       n = "0";
       if (roundTo > 0) {
@@ -422,7 +401,6 @@ class AnswerExplorerInfo extends React.Component {
 
   getTableStatistics() {
     if (this.state.selectedEdge && this.state.selectedEdge.edge_attributes) {
-      //underlying statistics tab for the contingency table
       var stats = new edgeStats.edgeStats(this.state.selectedEdge),
           gamma = stats.getGammaCoefficientString(),
           pval = stats.getPValString(),

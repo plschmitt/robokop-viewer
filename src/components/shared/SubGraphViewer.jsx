@@ -76,7 +76,7 @@ class SubGraphViewer extends React.Component {
       displayGraph: null,
       displayGraphOptions: this.graphOptions,
 
-      edgeRescalingBounds: [1,10],
+      edgeRescalingBounds: [0.5,10],
       enableGradientColoring: true,
       enablePValueScaling: true,
     };
@@ -458,10 +458,6 @@ class SubGraphViewer extends React.Component {
     //Scaling by p-value if applicable, and coloring by Kurskal Gamma if contingency table
     //is present. Can be disabled/modified in state preferences.
     g.edges.forEach((e) => {
-      //TESTING
-      console.log("edge in subgraph:");
-      console.log(e);
-
       if (this.state.enableGradientColoring) {
         var gradientFromVal = (n) => {
           var inputBounds = [-1,1],
@@ -513,7 +509,9 @@ class SubGraphViewer extends React.Component {
           if (p > alpha) {
             p *= 0.5;
           }
-          p = Math.max(Math.min(p,this.state.edgeRescalingBounds[0]),this.state.edgeRescalingBounds[1]);
+          var max = Math.max(this.state.edgeRescalingBounds[1],this.state.edgeRescalingBounds[0]),
+              min = Math.min(this.state.edgeRescalingBounds[1],this.state.edgeRescalingBounds[0]),
+          p = Math.max(Math.min(p,max),min);
           e.scaling.min = p;
           e.scaling.max = p;
         }
