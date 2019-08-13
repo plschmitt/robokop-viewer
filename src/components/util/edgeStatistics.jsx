@@ -52,7 +52,7 @@ class edgeStats {
   }
 
   getChiSquareString() {
-		return this.getChiSquare() ? "Chi Square Statistic: " + this.formatFloat(this.getChiSquare()) : null;
+		return this.getChiSquare() ? "Chi Square: " + this.formatFloat(this.getChiSquare()) : null;
   }
 
   getPVal() {
@@ -102,23 +102,68 @@ class edgeStats {
 	getGammaCoefficientString() {
 		var g = this.getGammaCoefficient(),
         interpretation = this.interpretVal(g, [-1,-0.7,-0.3,0.3,0.7], ["Strong Inversion", "Weak Inversion", "No Association", "Weak Agreement", "Strong Agreement"],"");
-		return g ? "Gamma Coefficient: " + this.formatFloat(g) + " (" + interpretation + ")" : null;
+		return g ? "Goodman/Kruskal's Gamma: " + this.formatFloat(g) + " (" + interpretation + ")" : null;
 	}
+
+  getNumObservations() {
+    var n = this.matrix.length * this.matrix[0].length;
+    this.matrix.forEach((e) => {
+      if (e.length != this.matrix[0].length) {
+        return NaN;
+      }
+    });
+    return n;
+  }
+
+  getChiSquare() {
+
+  }
+
+  getPearsonContingency() {
+    if (this.matrix) {
+      return Math.sqrt(this.getChiSquare()/(this.getNumObservations()+this.getChiSquare()));
+    }
+    return NaN;
+  }
+
+  getPearsonContingencyString() {
+    var c = this.getPearsonContingency();
+    return c ? "Pearson Contingency Coefficient: " + this.formatFloat(c) : null;
+  }
+
+  getCramersV() {
+    if (this.matrix) {
+      var n = this.getNumObservations(),
+          chi = this.getChiSquare(),
+          r = this.matrix.length,
+          k = n/r;
+      if (k && r && chi && n) {
+        return Math.sqrt((chi)/n*Math.min(k-1,r-1));
+      }
+      return NaN;
+    }
+  }
+
+  getCramersVString() {
+    var v = this.getCramersV();
+    return v ? "Cramer's V (Uncorrected): " + this.formatFloat(v) : null;
+  }
   
   formatFloat(n) {
-    if (n > 0.0001 || n < -0.0001) {
-      n = n && n != 0 ? parseFloat(n).toFixed(this.roundTo) : 0;
-      var d = (Math.log10((n ^ (n >> 31)) - (n >> 31)) | 0) + 1;
+    var roundTo = this.roundTo;
+    if (n != 0 && ((n <= 0.0001 && n >= -0.0001) || (n > 10000 || n < -10000))) {
+      //Scientific notation
+      return n.toExponential(roundTo).toString();
+    } else if (n) {
+      var n = n && n != 0 ? parseFloat(n).toFixed(roundTo) : 0,
+          d = (Math.log10((n ^ (n >> 31)) - (n >> 31)) | 0) + 1;
       if (!n.toString().includes('.')) n = n.toString()+'.';
-      return n.toString().padEnd(this.roundTo+d+1, '0');
-    } else if (n) { //scientific notation
-      return n.toExponential(this.roundTo).toString();
+      return n.toString().padEnd(roundTo+d+1, '0');
     } else {
+      n = "0";
       if (roundTo > 0) {
         n = "0.";
-        n.padEnd(roundTo+2, "0");
-      } else {
-      	n = "0";
+        return n.padEnd(roundTo+2, "0");
       }
       return n;
     }

@@ -390,14 +390,18 @@ button.taskListTask {
   border: 1px solid black !important;
 }
 
-/* Contingency table in edge explorer */
-#ctngcyTable {
+/* Contingency table and stats in edge explorer */
+.ctngcyTableContainer {
+  overflow: auto;
+}
+.ctngcyStatsPanel {
+}
+.ctngcyTable {
   border: 0 solid;
   text-align: center;
   width: 100%;
-  border-color: #333333;
-  color: #333333;
 }
+
 .ctngcyCell, .ctngcyColumnFinish, .ctngcyRowFinish, .ctngcyTableFinish,
 .ctngcyRowHeader, .ctngcyColumnHeader {
   padding: 6px;

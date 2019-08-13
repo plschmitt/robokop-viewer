@@ -505,7 +505,7 @@ class SubGraphViewer extends React.Component {
         var p = e ? e.edge_attributes ? e.edge_attributes.p_value : null : null;
         if (p) {
           var alpha = 0.1;
-          p = (Math.pow(p,-1)-1)*0.3;
+          p = ((1/p)-1)*0.3;
           if (p > alpha) {
             p *= 0.5;
           }

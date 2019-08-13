@@ -337,8 +337,8 @@ class AnswerExplorerInfo extends React.Component {
 
     if (matrixRender && matrixRender.length != 0) {
       return (
-        <div>
-          <table id="ctngcyTable">
+        <div className="ctngcyTableContainer">
+          <table className="ctngcyTable">
             <tbody>
               {matrixRender}
             </tbody>
@@ -355,7 +355,6 @@ class AnswerExplorerInfo extends React.Component {
   }
   //Statistics panel w/ table
   getMatrix() {
-    var buttonStyle = { display : "inline", float : "right", };
     return (
       <Panel>
         <Panel.Heading 
@@ -370,9 +369,8 @@ class AnswerExplorerInfo extends React.Component {
           </Panel.Title>
         </Panel.Heading>
         <Collapse in={this.state.componentOpened["cTable"]}>
-          <Panel.Body style={{overflow:"auto"}}>
+          <Panel.Body>
             {this.renderContingencyTable()}
-            {this.getTableStatistics()}
           </Panel.Body>
         </Collapse>
       </Panel>
@@ -381,19 +379,19 @@ class AnswerExplorerInfo extends React.Component {
   //Formatting floats
   formatTable(n) {
     var roundTo = this.state.ctngcyTableRoundTo;
-    if (n > 0.0001 || n < -0.0001) {
-      var n = n && n != 0 ? parseFloat(n*100).toFixed(roundTo) : 0,
+    if (n != 0 && ((n <= 0.0001 && n >= -0.0001) || (n > 10000 || n < -10000))) {
+      //Scientific notation
+      return n.toExponential(roundTo).toString();
+    } else if (n) {
+      var n = n && n != 0 ? parseFloat(n).toFixed(roundTo) : 0,
           d = (Math.log10((n ^ (n >> 31)) - (n >> 31)) | 0) + 1;
       if (!n.toString().includes('.')) n = n.toString()+'.';
       return n.toString().padEnd(roundTo+d+1, '0');
-    } else if (n) {
-      //Scientific notation
-      return n.toExponential(roundTo).toString();
     } else {
       n = "0";
       if (roundTo > 0) {
         n = "0.";
-        n.padEnd(roundTo+2, "0");
+        return n.padEnd(roundTo+2, "0");
       }
       return n;
     }
@@ -405,16 +403,33 @@ class AnswerExplorerInfo extends React.Component {
           gamma = stats.getGammaCoefficientString(),
           pval = stats.getPValString(),
           chi = stats.getChiSquareString(),
-          phi = stats.getPhiCoefficientString();
-      
+          phi = stats.getPhiCoefficientString(),
+          pearsoncont = stats.getPearsonContingencyString(),
+          cramerv = stats.getCramersVString();
+      var displayText = (text) => {
+        return (<p>{text}</p>);
+        //return (<div className="ctngcyTooltip">{text}<div className="ctngcyTooltipText">{hover}</div></div>)
+      }
       return (
-        <div>
-          <h3>Table Statistics</h3>
-          {phi ? <p>{phi}</p> : null}
-          {chi ? <p>{chi}</p> : null}
-          {pval ? <p>{pval}</p> : null}
-          {gamma ? <p>{gamma}</p> : null}
-        </div>
+      <Panel>
+        <Panel.Heading>
+          <Panel.Title componentClass="h3">
+            Statistics
+          </Panel.Title>
+        </Panel.Heading>
+        <Panel.Body>
+        <div className="ctngcyStatsPanel">
+            {pval ? displayText(pval) : null}
+            {chi ? displayText(chi) : null}
+            {(gamma || phi || pearsoncont || cramerv) ? <h3>From Table</h3> : null}
+            {gamma ? displayText(gamma) : null}
+            {phi ? displayText(phi) : null}
+            {pearsoncont ? displayText(pearsoncont) : null}
+            {cramerv ? displayText(cramerv) : null}
+            {(!gamma && !pval && !chi && !phi && !pearsoncont && !cramerv) ? <h3>{"Nothing to display"}</h3> : null}
+          </div>
+        </Panel.Body>
+      </Panel>
       )
     } else {
       return (null)
@@ -524,8 +539,11 @@ class AnswerExplorerInfo extends React.Component {
             </Col>
           </Row>
           <Row>
-            <Col md={12}>
+            <Col md={9}>
               {this.getMatrix()}
+            </Col>
+            <Col md={3}>
+              {this.getTableStatistics()}
             </Col>
           </Row>
           <Row>
