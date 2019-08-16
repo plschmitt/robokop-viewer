@@ -353,7 +353,7 @@ class AnswerExplorerInfo extends React.Component {
       )
     }
   }
-  //Statistics panel w/ table
+  
   getMatrix() {
     return (
       <Panel>
@@ -408,8 +408,10 @@ class AnswerExplorerInfo extends React.Component {
           cramerv = stats.getCramersVString();
       var displayText = (text) => {
         return (<p>{text}</p>);
-        //return (<div className="ctngcyTooltip">{text}<div className="ctngcyTooltipText">{hover}</div></div>)
       }
+      //non matrix elements will render if they are numerically defined.
+      //if a valid matrix exists for the edge, all matrix-related calculations will show
+      //regardless of if they evaluate to NaN.
       return (
       <Panel>
         <Panel.Heading>
@@ -421,12 +423,14 @@ class AnswerExplorerInfo extends React.Component {
         <div className="ctngcyStatsPanel">
             {pval ? displayText(pval) : null}
             {chi ? displayText(chi) : null}
-            {(gamma || phi || pearsoncont || cramerv) ? <h3>From Table</h3> : null}
-            {gamma ? displayText(gamma) : null}
-            {phi ? displayText(phi) : null}
-            {pearsoncont ? displayText(pearsoncont) : null}
-            {cramerv ? displayText(cramerv) : null}
-            {(!gamma && !pval && !chi && !phi && !pearsoncont && !cramerv) ? <h3>{"Nothing to display"}</h3> : null}
+            {stats.isValidMatrix() && 
+            (<div><h3>From Table</h3>
+            {displayText(gamma)}
+            {displayText(phi)}
+            {displayText(pearsoncont)}
+            {displayText(cramerv)}
+            </div>)}
+            {(!pval && !chi && !stats.isValidMatrix()) ? <h3>{"Nothing to display"}</h3> : null}
           </div>
         </Panel.Body>
       </Panel>

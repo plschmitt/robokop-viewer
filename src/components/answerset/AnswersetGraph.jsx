@@ -40,17 +40,13 @@ class AnswersetGraph extends React.Component {
                   showSupport={false}
                   omitEdgeLabel
                   callbackOnGraphClick={() => {}}
+                  interactiveStatEdges={true}
                 />
               }
               {!this.state.renderGraph &&
                 <Button onClick={() => this.setState({ renderGraph: true })}>
                   Render Graph
                 </Button>
-              }
-              {this.state.renderGraph && 
-              <div style={{padding:"12px","font-size":"12px"}}>
-              {"Scaling by p-value (lower = thicker edges). A lighter blue/red indicates a stronger positive/negative association derived from Goodman and Kruskal's Gamma respectively."}
-              </div>
               }
             </Panel.Body>
           </Panel>

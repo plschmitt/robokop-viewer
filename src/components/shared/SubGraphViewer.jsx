@@ -8,6 +8,9 @@ const _ = require('lodash');
 
 import edgeStats from './../util/edgeStatistics';
 
+//import { Form, FormGroup } from 'react-bootstrap';
+import { Button, Form } from 'react-bootstrap'
+
 class SubGraphViewer extends React.Component {
   constructor(props) {
     super(props);
@@ -455,68 +458,70 @@ class SubGraphViewer extends React.Component {
       g.edges = g.edges.filter(e => e.type !== 'literature_co-occurrence');
     }
 
-    //Scaling by p-value if applicable, and coloring by Kurskal Gamma if contingency table
-    //is present. Can be disabled/modified in state preferences.
-    g.edges.forEach((e) => {
-      if (this.state.enableGradientColoring) {
-        var gradientFromVal = (n) => {
-          var inputBounds = [-1,1],
-          //note: right now it's just red->black->blue but color scheme can be easily modified
-          //colorBounds=[[0,220,255],[220,0,255],[255,0,0],[220,0,255],[0,220,255]];
-          colorBounds = [[230,0,0],[0,0,0],[0,0,230]],
-          colors = [0,0,0],
-          val = ((n - inputBounds[0]) / (inputBounds[1]-inputBounds[0])),
-          start = Math.floor(val*(colorBounds.length-1)),
-          end = Math.ceil(val*(colorBounds.length-1));
-          for (var i = 0; i < 3; i++) {
-            colors[i] = colorBounds[start][i] + val * (colorBounds[end][i] - colorBounds[start][i]);
+    //add stats visualization
+    //the prop statEdges must be explicitely declared to be false to stop the visualization.
+    if (g.edges && !(typeof this.props.statEdges === 'boolean' && this.props.statEdges == false)) {
+      g.edges.forEach((e) => {
+        if (this.state.enableGradientColoring) {
+          var gradientFromVal = (n) => {
+            var inputBounds = [-1,1],
+            //note: right now it's just red->black->blue but color scheme can be easily modified
+            //colorBounds=[[0,220,255],[220,0,255],[255,0,0],[220,0,255],[0,220,255]];
+            colorBounds = [[230,0,0],[0,0,0],[0,0,230]],
+            colors = [0,0,0],
+            val = ((n - inputBounds[0]) / (inputBounds[1]-inputBounds[0])),
+            start = Math.floor(val*(colorBounds.length-1)),
+            end = Math.ceil(val*(colorBounds.length-1));
+            for (var i = 0; i < 3; i++) {
+              colors[i] = colorBounds[start][i] + val * (colorBounds[end][i] - colorBounds[start][i]);
+            }
+            return colors;
           }
-          return colors;
-        }
-        var brighten = (arr, amount) => {
-          for (var i = 0; i < 3; i++) {
-            arr[i] = Math.min(255,arr[i]+amount);
+          var brighten = (arr, amount) => {
+            for (var i = 0; i < 3; i++) {
+              arr[i] = Math.min(255,arr[i]+amount);
+            }
+            return arr;
           }
-          return arr;
-        }
-        var toHex = (arr) => {
-          var hex = "";
-          for (var i = 0; i < 3; i++) {
-            hex = hex + Math.floor(arr[i]).toString(16).padStart(2,'0');
+          var toHex = (arr) => {
+            var hex = "";
+            for (var i = 0; i < 3; i++) {
+              hex = hex + Math.floor(arr[i]).toString(16).padStart(2,'0');
+            }
+            return hex;
           }
-          return hex;
-        }
 
-        var stats = new edgeStats.edgeStats(e),
-            g = stats.getGammaCoefficient();
+          var stats = new edgeStats.edgeStats(e),
+              g = stats.getGammaCoefficient();
 
-        if (g) {
-          var gradient = gradientFromVal(g);
-          e.color = {
-            color : toHex(gradient),
-            highlight : toHex(brighten(gradient,20)),
-            hover : toHex(brighten(gradient,20)),
-            opacity : 1.0,
-            dashes : false,
-          };
-        }
-      }
-      if (this.state.enablePValueScaling) {
-        var p = e ? e.edge_attributes ? e.edge_attributes.p_value : null : null;
-        if (p) {
-          var alpha = 0.1;
-          p = ((1/p)-1)*0.3;
-          if (p > alpha) {
-            p *= 0.5;
+          if (g) {
+            var gradient = gradientFromVal(g);
+            e.color = {
+              color : toHex(gradient),
+              highlight : toHex(brighten(gradient,20)),
+              hover : toHex(brighten(gradient,20)),
+              opacity : 1.0,
+              dashes : false,
+            };
           }
-          var max = Math.max(this.state.edgeRescalingBounds[1],this.state.edgeRescalingBounds[0]),
-              min = Math.min(this.state.edgeRescalingBounds[1],this.state.edgeRescalingBounds[0]),
-          p = Math.max(Math.min(p,max),min);
-          e.scaling.min = p;
-          e.scaling.max = p;
         }
-      }
-    });
+        if (this.state.enablePValueScaling) {
+          var p = e ? e.edge_attributes ? e.edge_attributes.p_value : null : null;
+          if (p) {
+            var alpha = 0.1;
+            p = ((1/p)-1)*0.3;
+            if (p > alpha) {
+              p *= 0.5;
+            }
+            var max = Math.max(this.state.edgeRescalingBounds[1],this.state.edgeRescalingBounds[0]),
+                min = Math.min(this.state.edgeRescalingBounds[1],this.state.edgeRescalingBounds[0]),
+            p = Math.max(Math.min(p,max),min);
+            e.scaling.min = p;
+            e.scaling.max = p;
+          }
+        }
+      });
+    }
 
     return g;
   }
@@ -536,6 +541,11 @@ class SubGraphViewer extends React.Component {
               events={{ click: this.clickCallback }}
               getNetwork={(network) => { this.network = network; }} // Store network reference in the component
             />
+          </div>
+        }
+        {(isValid && !(typeof this.props.statEdges === 'boolean' && this.props.statEdges == false) && this.props.interactiveStatEdges) &&
+          <div style={{padding:"12px","font-size":"12px"}}>
+          Scaling by p-value (lower = thicker edges). A lighter blue/red indicates a stronger positive/negative association derived from Goodman and Kruskal's Gamma respectively."}
           </div>
         }
       </div>
