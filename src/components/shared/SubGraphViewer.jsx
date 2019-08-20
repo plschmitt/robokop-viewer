@@ -8,9 +8,6 @@ const _ = require('lodash');
 
 import edgeStats from './../util/edgeStatistics';
 
-//import { Form, FormGroup } from 'react-bootstrap';
-import { Button, Form } from 'react-bootstrap'
-
 class SubGraphViewer extends React.Component {
   constructor(props) {
     super(props);

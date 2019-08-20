@@ -10,8 +10,6 @@ class edgeStats {
 		this.roundTo = 3;
     //is the matrix rectangular/frequency defined for all cells?
     this.validMatrix = true;
-    console.log("testing matrix validity");
-    console.log(this.matrix);
     if (!this.matrix) {
       this.validMatrix = false;
     } else {
@@ -21,7 +19,7 @@ class edgeStats {
           this.validMatrix = false;
         }
         for (var j = 0; j < this.matrix[i].length; j++) {
-          if (!this.matrix[i][j].frequency) {
+          if (this.matrix[i][j].frequency != 0 && !this.matrix[i][j].frequency) {
             this.validMatrix = false;
           }
         }
@@ -50,12 +48,7 @@ class edgeStats {
       if (!n.toString().includes('.')) n = n.toString()+'.';
       return n.toString().padEnd(roundTo+d+1, '0');
     } else {
-      n = "0";
-      if (roundTo > 0) {
-        n = "0.";
-        return n.padEnd(roundTo+2, "0");
-      }
-      return n;
+      return "NaN";
     }
   }
 
@@ -109,14 +102,13 @@ class edgeStats {
   getPhiCoefficientString() {
     var phi = this.getPhiCoefficient(),
         interpretation = this.interpretVal(phi, [-1,-0.7,-0.3,0.3,0.7], ["Strong Negative", "Weak Negative", "Little or No", "Weak Positive", "Strong Positive"], " Association");
-    return "Phi Coefficient: " + this.formatFloat(phi) + (interpretation ? " (" + interpretation + ")" : "");
+    return "Phi Coefficient: " + this.formatFloat(phi) + (phi && interpretation ? " (" + interpretation + ")" : "");
   }
 
   getGammaCoefficient() {
     var nc = 0, //concordant pairs
         nd = 0, //reversed pairs
         matrix = this.matrix;
-        console.log("gamma");
     if (this.validMatrix) {
       for (var i = 0; i < matrix.length; i++) {
         for (var j = 0; j < matrix[i].length; j++) {
@@ -153,7 +145,7 @@ class edgeStats {
 	getGammaCoefficientString() {
 		var g = this.getGammaCoefficient(),
         interpretation = this.interpretVal(g, [-1,-0.7,-0.3,0.3,0.7], ["Strong Inversion", "Weak Inversion", "No Association", "Weak Agreement", "Strong Agreement"],"");
-		return "Goodman/Kruskal's Gamma: " + this.formatFloat(g) + (interpretation ? " (" + interpretation + ")" : "");
+		return "Goodman/Kruskal's Gamma: " + this.formatFloat(g) + (g && interpretation ? " (" + interpretation + ")" : "");
 	}
 
   getNumCells() {
